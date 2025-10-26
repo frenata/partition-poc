@@ -23,8 +23,8 @@ def main(config):
     )[0][0]
 
     conn.run(f"""
-            create table if not exists {config.name}_lines 
-            partition of lines
+            create table if not exists {config.name}_line 
+            partition of line
             for values in ('{str(client_id)}')
             """)
 
@@ -41,7 +41,7 @@ def main(config):
         lengths = [d[1] for d in chunk]
         conn.run(
             """
-            INSERT INTO lines (name, length, client_id)
+            INSERT INTO line (name, length, client_id)
             SELECT unnest(:names::text[]), unnest(:lengths::float8[]), :client_id
             """,
             names=names,
