@@ -1,7 +1,14 @@
+import itertools
 import secrets
 import string
 import random
 import utils
+
+
+def chunked(iterable, size):
+    iterator = iter(iterable)
+    while chunk := list(itertools.islice(iterator, size)):
+        yield chunk
 
 
 def main(config):
@@ -21,16 +28,23 @@ def main(config):
             for values in ('{str(client_id)}')
             """)
 
-    # total, inserted = config.size, 0
-    # while inserted <= total:
-    #     ",".join("values (:name, :length, :client_id)" 
-    for _ in range(config.size):
+    data = [
+        (
+            "".join(secrets.choice(string.ascii_letters) for _ in range(10)),
+            random.uniform(0.6, 15.0),
+        )
+        for _ in range(config.size)
+    ]
+
+    for chunk in chunked(data, 10_000):
+        names = [d[0] for d in chunk]
+        lengths = [d[1] for d in chunk]
         conn.run(
             """
-                insert into lines (name, length, client_id)
-                values (:name, :length, :client_id)
-                 """,
-            name="".join(secrets.choice(string.ascii_letters) for _ in range(10)),
-            length=random.uniform(0.6, 15.0),
-            client_id=client_id
+            INSERT INTO lines (name, length, client_id)
+            SELECT unnest(:names::text[]), unnest(:lengths::float8[]), :client_id
+            """,
+            names=names,
+            lengths=lengths,
+            client_id=client_id,
         )
